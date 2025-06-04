@@ -20,22 +20,24 @@ def filter_duplicate_predictions(product_predictions: list, miner_uids: list):
 
     for pred in product_predictions:
         if pred.miner_id in miner_uids:
-            rounded_pred = float("{:.2f}".format(pred.prediction))
-            if rounded_pred not in prediction_groups:
-                prediction_groups[rounded_pred] = []
-            prediction_groups[rounded_pred].append((pred.prediction, pred.miner_id))
+            precision_two_pred = int(pred.prediction * 100) / 100
+            if precision_two_pred not in prediction_groups:
+                prediction_groups[precision_two_pred] = []
+            prediction_groups[precision_two_pred].append(
+                (pred.prediction, pred.miner_id)
+            )
 
     filtered_predictions = []
     filtered_miners = []
 
-    for rounded_pred, entries in prediction_groups.items():
+    for precision_two_pred, entries in prediction_groups.items():
         if len(entries) == 1:
             pred_value, miner_id = entries[0]
         else:
             miner_options = [miner_id for _, miner_id in entries]
             selected_miner = random.choice(miner_options)
             bt.logging.info(
-                f"Selected miner {selected_miner} from {miner_options} for prediction {rounded_pred}"
+                f"Selected miner {selected_miner} from {miner_options} for prediction {precision_two_pred}"
             )
             for pred_value, miner_id in entries:
                 if miner_id == selected_miner:
