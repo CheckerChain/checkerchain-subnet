@@ -22,6 +22,7 @@ import bittensor as bt
 from typing import List, Dict
 
 from checkerchain.types.checker_chain import ReviewedProduct
+from neurons.validator import Validator
 
 
 # def normalize(value: float, min_val: float, max_val: float) -> float:
@@ -92,7 +93,18 @@ from checkerchain.types.checker_chain import ReviewedProduct
 #     )
 
 
-def reward(prediction: float | None, actual: float) -> float:
+def get_stake_score(self: Validator, miner_uid: int):
+    max_stake = self.metagraph.S.max().item()
+    min_stake = self.metagraph.S.min().item()
+    miner_stake = self.metagraph.S[miner_uid]
+    if max_stake == min_stake:
+        return 1.0
+    return (miner_stake - min_stake) / (max_stake - min_stake)
+
+
+def reward(
+    self: Validator, prediction: float | None, actual: float, miner_uid: int
+) -> float:
     """
     Reward the miner response to the dummy request. This method returns a reward
     value for the miner, which is used to update the miner's score.
@@ -100,16 +112,28 @@ def reward(prediction: float | None, actual: float) -> float:
     Returns:
     - float: The reward value for the miner.
     """
-    score = 0
+    perf_score = 0
     if prediction:
-        score = 100 - abs(prediction - actual)
-    return score
+        deviation = abs(prediction - actual)
+        deviation_percentage = (deviation / actual * 100) if actual != 0 else 0
+        if deviation_percentage > 10:
+            return perf_score
+        perf_score = 100 - deviation
+    stake_score = get_stake_score(self, miner_uid=miner_uid)
+    final_perf_score = 0.85 * perf_score
+    final_stake_score = 15 * stake_score
+    total_score = final_perf_score + final_stake_score
+    bt.logging.info(
+        f"Miner UID: {miner_uid}, Prediction: {prediction}, Actual: {actual}, Performance Score: {final_perf_score}, Stake Score: {final_stake_score}, Total Score: {total_score}"
+    )
+    return total_score
 
 
 def get_rewards(
-    self,
+    self: Validator,
     reviewed_product: ReviewedProduct,
     responses: List[float | None],
+    miner_uids: List[int],
 ) -> np.ndarray:
     """
     Returns an array of rewards for the given query and responses.
@@ -125,9 +149,9 @@ def get_rewards(
         return np.full(len(responses), 100 / len(responses))
 
     rewards_dict = {
-        i: reward(r, reviewed_product.trustScore)
-        for i, r in enumerate(responses)
-        if r != 0
+        i: reward(self, r, reviewed_product.trustScore, uid)
+        for i, (r, uid) in enumerate(zip(responses, miner_uids))
+        if r is not None
     }
 
     keep_count = int(np.ceil(0.9 * len(rewards_dict)))

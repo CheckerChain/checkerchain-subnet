@@ -159,10 +159,15 @@ class Miner(BaseMinerNeuron):
         )
         return priority
 
+    async def get_emission(self):
+        uid = self.metagraph.hotkeys.index(self.wallet.hotkey)
+        emission = self.metagraph.E[uid]
+        bt.logging.info(f"Emissions:: {emission}")
+
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with Miner() as miner:
+    with Miner() as miner:  # Adjust the sleep time as needed
         while True:
-            bt.logging.info(f"Miner running... {time.time()}")
+            miner.get_emission()
             time.sleep(50)
