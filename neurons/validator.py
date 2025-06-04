@@ -59,11 +59,16 @@ class Validator(BaseValidatorNeuron):
         # TODO(developer): Rewrite this function based on your protocol definition.
         return await forward(self)
 
+    def get_emission(self):
+        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        emission = self.metagraph.E[uid]
+        bt.logging.info(f"Emissions:: {emission}")
+
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     # create_db()
     with Validator() as validator:
         while True:
-            bt.logging.info(f"Validator running... {time.time()}")
-            time.sleep(5)
+            validator.get_emission()
+            time.sleep(100)

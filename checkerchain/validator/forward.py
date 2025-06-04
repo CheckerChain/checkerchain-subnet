@@ -36,6 +36,7 @@ from checkerchain.utils.checker_chain import fetch_products
 from checkerchain.utils.config import IS_OWNER, STATS_SERVER_URL, JWT_SECRET
 import requests
 from checkerchain.utils.uids import get_filtered_uids
+from checkerchain.utils.filter_miners import filter_duplicate_predictions
 
 
 async def forward(self: Validator):
@@ -103,18 +104,19 @@ async def forward(self: Validator):
             if not product_predictions:
                 continue
 
-            # predictions = [p.prediction for p in product_predictions]
-            # prediction_miners = [p.miner_id for p in product_predictions]
-            predictions = []
-            prediction_miners = []
-            for pred in product_predictions:
-                if pred.miner_id in miner_ids:
-                    predictions.append(pred.prediction)
-                    prediction_miners.append(pred.miner_id)
-            _rewards = get_rewards(self, reward_product, responses=predictions)
-            bt.logging.info("Product ID: ", reward_product._id)
-            bt.logging.info("Miners: ", miner_ids)
-            bt.logging.info("Rewards: ", _rewards)
+            predictions, prediction_miners = filter_duplicate_predictions(
+                product_predictions, miner_ids
+            )
+
+            _rewards = get_rewards(
+                self,
+                reward_product,
+                responses=predictions,
+                miner_uids=prediction_miners,
+            )
+            bt.logging.info(f"Product ID: {reward_product._id}")
+            bt.logging.info(f"Miners: {prediction_miners}")
+            bt.logging.info(f"Rewards: {_rewards}")
             for i, (miner_id, reward, prediction_score) in enumerate(
                 zip(prediction_miners, _rewards, predictions)
             ):
