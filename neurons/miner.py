@@ -160,7 +160,7 @@ class Miner(BaseMinerNeuron):
         return priority
 
     def get_emission(self):
-        uid = self.metagraph.hotkeys.index(self.wallet.hotkey)
+        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         emission = self.metagraph.E[uid]
         bt.logging.info(f"Emissions:: {emission}")
 
