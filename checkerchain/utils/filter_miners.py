@@ -19,7 +19,7 @@ def filter_duplicate_predictions(product_predictions: list, miner_uids: list):
     )  # Maps rounded prediction -> list of (original_pred, miner_id)
 
     for pred in product_predictions:
-        if pred.miner_id in miner_uids:
+        if pred.miner_id in miner_uids and pred.prediction is not None:
             precision_two_pred = int(pred.prediction * 100) / 100
             if precision_two_pred not in prediction_groups:
                 prediction_groups[precision_two_pred] = []
