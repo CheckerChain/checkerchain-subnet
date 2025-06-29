@@ -75,48 +75,34 @@ class MockDendrite(bt.dendrite):
             """Queries all axons for responses."""
 
             async def single_axon_response(i, axon):
-                """Queries a single axon for a response."""
-
                 start_time = time.time()
                 s = synapse.copy()
-                # Attach some more required data so it looks real
                 s = self.preprocess_synapse_for_request(axon, s, timeout)
-                # We just want to mock the response, so we'll just fill in some data
                 process_time = random.random()
                 if process_time < timeout:
                     s.dendrite.process_time = str(time.time() - start_time)
-                    # Update the status code and status message of the dendrite to match the axon
-                    # TODO (developer): replace with your own expected synapse data
-                    s.dummy_output = s.dummy_input * 2
                     s.dendrite.status_code = 200
                     s.dendrite.status_message = "OK"
                     synapse.dendrite.process_time = str(process_time)
+                    # Return a mock response: list of dicts with 'score', 'review', and 'keywords'
+                    mock_response = [{"score": 75.0, "review": "Mock review text.", "keywords": ["blockchain", "crypto", "defi", "web3", "mock"]} for _ in getattr(s, 'query', [None])]
+                    s.response = mock_response
                 else:
-                    s.dummy_output = 0
                     s.dendrite.status_code = 408
                     s.dendrite.status_message = "Timeout"
                     synapse.dendrite.process_time = str(timeout)
-
-                # Return the updated synapse object after deserializing if requested
+                    s.response = []
                 if deserialize:
                     return s.deserialize()
                 else:
                     return s
-
             return await asyncio.gather(
                 *(
                     single_axon_response(i, target_axon)
                     for i, target_axon in enumerate(axons)
                 )
             )
-
         return await query_all_axons(streaming)
 
     def __str__(self) -> str:
-        """
-        Returns a string representation of the Dendrite object.
-
-        Returns:
-            str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
-        """
         return "MockDendrite({})".format(self.keypair.ss58_address)

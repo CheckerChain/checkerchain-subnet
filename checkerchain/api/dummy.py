@@ -19,7 +19,7 @@
 
 import bittensor as bt
 from typing import List, Optional, Union, Any, Dict
-from checkerchain.protocol import Dummy
+from checkerchain.protocol import CheckerChainSynapse
 from bittensor.subnets import SubnetsAPI
 
 
@@ -29,14 +29,17 @@ class DummyAPI(SubnetsAPI):
         self.netuid = 33
         self.name = "dummy"
 
-    def prepare_synapse(self, dummy_input: int) -> Dummy:
-        synapse.dummy_input = dummy_input
-        return synapse
+    def prepare_synapse(self, query: List[str]) -> CheckerChainSynapse:
+        return CheckerChainSynapse(query=query)
 
-    def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> List[int]:
+    def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> List[Dict[str, Any]]:
         outputs = []
         for response in responses:
-            if response.dendrite.status_code != 200:
+            if hasattr(response, 'dendrite') and getattr(response.dendrite, 'status_code', 200) != 200:
                 continue
-            return outputs.append(response.dummy_output)
+            # Expect response to be a list of dicts with 'score' and 'review'
+            if hasattr(response, 'response'):
+                outputs.extend(response.response)
+            elif isinstance(response, list):
+                outputs.extend(response)
         return outputs
