@@ -21,11 +21,10 @@ class FetchProductsReturnType:
 def fetch_products():
     # Reviewed products
     url_reviewed = "https://api.checkerchain.com/api/v1/products?page=1&limit=30"
-    url_unreviewed = "https://api.checkerchain.com/api/v1/products?page=1&limit=1"
     # Unreviewed (published) products
-    # url_unreviewed = (
-    #     "https://api.checkerchain.com/api/v1/products?page=1&limit=30&status=published"
-    # )
+    url_unreviewed = (
+        "https://api.checkerchain.com/api/v1/products?page=1&limit=30&status=published"
+    )
 
     response_reviewed = requests.get(url_reviewed)
     response_unreviewed = requests.get(url_unreviewed)

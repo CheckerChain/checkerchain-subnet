@@ -21,7 +21,7 @@ import time
 import bittensor as bt
 import numpy as np
 import traceback
-import asyncio
+import json
 import jwt
 
 from checkerchain.protocol import CheckerChainSynapse
@@ -78,19 +78,33 @@ async def forward(self: Validator):
         # Cross-check score, review sentiment, and keywords
         for miner_uid, miner_predictions in zip(miner_uids, responses):
             for product_idx, prediction in enumerate(miner_predictions):
-                score = prediction.get("score") if isinstance(prediction, dict) else None
-                review = prediction.get("review") if isinstance(prediction, dict) else None
-                keywords = prediction.get("keywords", []) if isinstance(prediction, dict) else []
-                
+                score = (
+                    prediction.get("score") if isinstance(prediction, dict) else None
+                )
+                review = (
+                    prediction.get("review") if isinstance(prediction, dict) else None
+                )
+                keywords = (
+                    prediction.get("keywords", [])
+                    if isinstance(prediction, dict)
+                    else []
+                )
+
                 # Log prediction details for monitoring
-                bt.logging.info(f"Miner {miner_uid} - Product {product_idx}: Score={score}, Keywords={keywords}")
-                
+                bt.logging.info(
+                    f"Miner {miner_uid} - Product {product_idx}: Score={score}, Keywords={keywords}"
+                )
+
                 # Basic validation logging
                 if keywords:
                     if len(keywords) < 3:
-                        bt.logging.warning(f"Miner {miner_uid}: Too few keywords ({len(keywords)}): {keywords}")
+                        bt.logging.warning(
+                            f"Miner {miner_uid}: Too few keywords ({len(keywords)}): {keywords}"
+                        )
                     elif len(keywords) > 7:
-                        bt.logging.warning(f"Miner {miner_uid}: Too many keywords ({len(keywords)}): {keywords}")
+                        bt.logging.warning(
+                            f"Miner {miner_uid}: Too many keywords ({len(keywords)}): {keywords}"
+                        )
 
         # Add all responses to the database predictions table
         for miner_uid, miner_predictions in zip(miner_uids, responses):
@@ -98,9 +112,13 @@ async def forward(self: Validator):
                 if product_id not in products_to_score:
                     # Store complete prediction data (score, review, keywords)
                     add_prediction(
-                        product_id=product_id, 
-                        miner_id=miner_uid, 
-                        prediction_data=prediction if isinstance(prediction, dict) else {"score": prediction}
+                        product_id=product_id,
+                        miner_id=miner_uid,
+                        prediction_data=(
+                            prediction
+                            if isinstance(prediction, dict)
+                            else {"score": prediction}
+                        ),
                     )
     else:
         bt.logging.info("No any products to send to miners.")
@@ -124,7 +142,9 @@ async def forward(self: Validator):
 
             # Skip if no valid predictions after filtering
             if not prediction_miners:
-                bt.logging.warning(f"No valid predictions found for product {reward_product._id}")
+                bt.logging.warning(
+                    f"No valid predictions found for product {reward_product._id}"
+                )
                 continue
 
             _rewards = await get_rewards(
@@ -136,20 +156,20 @@ async def forward(self: Validator):
             bt.logging.info(f"Product ID: {reward_product._id}")
             bt.logging.info(f"Miners: {prediction_miners}")
             bt.logging.info(f"Rewards: {_rewards}")
-            
+
             # Store analysis results for each miner
-            for i, (miner_id, reward, prediction_score) in enumerate(
+            for i, (miner_id, reward, prediction) in enumerate(
                 zip(prediction_miners, _rewards, predictions)
             ):
                 if reward is None:
                     continue
                 try:
-                    if not prediction_score:
+                    if not prediction:
                         bt.logging.warning(
                             f"Prediction score is None for miner {int(miner_id)} and product {reward_product._id}"
                         )
                         continue
-                    
+
                     # Extract analysis data from the reward calculation
                     # This assumes get_rewards returns analysis metadata
                     analysis_data = {
@@ -159,31 +179,36 @@ async def forward(self: Validator):
                         # "keyword_verification_score": keyword_score,
                         # "coherence_score": coherence_score,
                     }
-                    
+
                     # Update the prediction with analysis results
                     add_prediction(
                         product_id=reward_product._id,
                         miner_id=miner_id,
-                        prediction_data=prediction_score.prediction if isinstance(prediction_score.prediction, dict) else {"score": prediction_score.prediction},
-                        analysis_data=analysis_data
+                        prediction_data={"score": prediction.prediction},
+                        analysis_data=analysis_data,
                     )
-                    
+
                     # Find the index of the miner in the miner_ids array
                     miner_indices = np.where(miner_ids == miner_id)[0]
                     if len(miner_indices) == 0:
-                        bt.logging.warning(f"Miner {miner_id} not found in miner_ids array")
+                        bt.logging.warning(
+                            f"Miner {miner_id} not found in miner_ids array"
+                        )
                         continue
                     idx = miner_indices[0]
-                    
+
                     prediction_logs.append(
                         {
                             "productId": reward_product._id,
                             "productName": reward_product.name,
                             "productSlug": reward_product.slug,
-                            "predictionScore": prediction_score,
+                            "predictionScore": prediction.prediction,
                             "actualScore": reward_product.trustScore,
                             "hotkey": self.metagraph.hotkeys[miner_id],
                             "coldkey": self.metagraph.coldkeys[miner_id],
+                            "review": prediction.review,
+                            "keywords": json.loads(prediction.keywords),
+                            "sentiment": prediction.sentiment,
                             "uid": int(miner_id),
                         }
                     )
@@ -236,5 +261,4 @@ async def forward(self: Validator):
         self.update_to_last_scores()
 
     # 25 mins until next validation ??
-    # time.sleep(25 * 60)
-    time.sleep(25)
+    time.sleep(25 * 60)
