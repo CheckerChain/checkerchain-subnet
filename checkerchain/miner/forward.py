@@ -24,6 +24,9 @@ async def forward(self: Miner, synapse: checkerchain.protocol.CheckerChainSynaps
     results = []
     for i, product_id in enumerate(synapse.query):
         if product_id in miner_preds:
+            bt.logging.info(
+                f"Using cached prediction for {product_id}: {miner_preds[product_id]}"
+            )
             cached_data = miner_preds[product_id]
             responses[i] = cached_data
         else:
@@ -46,7 +49,6 @@ async def forward(self: Miner, synapse: checkerchain.protocol.CheckerChainSynaps
                 if isinstance(result, Exception):
                     raise result
 
-                # Store the complete assessment in cache
                 miner_preds[product_id] = result
                 responses[i] = result
 

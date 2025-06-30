@@ -177,16 +177,12 @@ async def generate_review_text(product: UnreviewedProduct):
                 HumanMessage(content=prompt),
             ]
         )
-        # Extract the text content from the response
         if hasattr(result, "content"):
             review_text = result.content
         else:
             review_text = str(result)
 
-        # Clean up and limit to 140 characters
         review_text = review_text.strip()
-        # if len(review_text) > 180:
-        #     review_text = review_text[:150] + "..."
 
         return review_text
     except Exception as e:
@@ -235,13 +231,11 @@ async def generate_keywords(product: UnreviewedProduct) -> list[str]:
             ]
         )
 
-        # Extract the text content from the response
         if hasattr(result, "content"):
             response_text = result.content
         else:
             response_text = str(result)
 
-        # Parse keywords from comma-separated text
         keywords = [kw.strip() for kw in response_text.split(",")]
 
         # Clean up keywords (remove quotes, extra spaces, etc.)
@@ -250,7 +244,7 @@ async def generate_keywords(product: UnreviewedProduct) -> list[str]:
         # Ensure we have around 5 keywords, trim if too many, pad if too few
         keywords = keywords[:5]  # Take first 5
         while len(keywords) < 5:
-            keywords.append("unknown")  # Pad with unknown if needed
+            keywords.append("unknown")
 
         return keywords
     except Exception as e:
@@ -261,7 +255,7 @@ async def generate_keywords(product: UnreviewedProduct) -> list[str]:
             "risky",
             "suspicious",
             "poor",
-        ]  # Fallback quality keywords
+        ]
 
 
 async def generate_quality_keywords_with_score(
@@ -271,7 +265,6 @@ async def generate_quality_keywords_with_score(
     Generate quality-descriptive keywords based on both product analysis and the calculated score.
     This ensures consistency between the score and keywords.
     """
-    # Map score ranges to quality levels
     if score >= 80:
         quality_level = "excellent"
         trust_level = "highly-trusted"
@@ -684,7 +677,6 @@ async def verify_quality_keywords(keywords: List[str], score: float) -> float:
     try:
         llm = await create_text_llm()
 
-        # Define expected quality keywords based on score
         if score >= 80:
             expected_quality = [
                 "excellent",
@@ -751,18 +743,15 @@ async def verify_quality_keywords(keywords: List[str], score: float) -> float:
             ]
         )
 
-        # Extract the text content from the response
         if hasattr(result, "content"):
             response_text = result.content.strip()
         else:
             response_text = str(result).strip()
 
-        # Try to extract a number from the response
         try:
             verification_score = float(response_text)
-            return max(0, min(5, verification_score))  # Clamp between 0-5
+            return max(0, min(5, verification_score))
         except ValueError:
-            # If we can't parse a number, try to extract it from the text
             import re
 
             numbers = re.findall(r"\d+\.?\d*", response_text)
@@ -792,13 +781,11 @@ async def analyze_sentiment(review: str) -> str:
             ]
         )
 
-        # Extract the text content from the response
         if hasattr(result, "content"):
             sentiment = result.content.strip().lower()
         else:
             sentiment = str(result).strip().lower()
 
-        # Validate sentiment
         valid_sentiments = ["positive", "neutral", "negative"]
         if sentiment in valid_sentiments:
             return sentiment

@@ -68,8 +68,8 @@ async def forward(self: Validator):
             timeout=25,
             deserialize=True,
         )
+        bt.logging.info(f"Received responses: {responses}")
 
-        # Cross-check score, review sentiment, and keywords
         for miner_uid, miner_predictions in zip(miner_uids, responses):
             for product_idx, prediction in enumerate(miner_predictions):
                 score = (
@@ -84,7 +84,6 @@ async def forward(self: Validator):
                     else []
                 )
 
-                # Basic validation logging
                 if keywords:
                     if len(keywords) < 3:
                         bt.logging.warning(
@@ -95,11 +94,9 @@ async def forward(self: Validator):
                             f"Miner {miner_uid}: Too many keywords ({len(keywords)}): {keywords}"
                         )
 
-        # Add all responses to the database predictions table
         for miner_uid, miner_predictions in zip(miner_uids, responses):
             for product_id, prediction in zip(queries, miner_predictions):
                 if product_id not in products_to_score:
-                    # Store complete prediction data (score, review, keywords)
                     add_prediction(
                         product_id=product_id,
                         miner_id=miner_uid,
@@ -140,6 +137,9 @@ async def forward(self: Validator):
                 responses=predictions,
                 miner_uids=prediction_miners,
             )
+            bt.logging.info(f"Product ID: {reward_product._id}")
+            bt.logging.info(f"Miners: {prediction_miners}")
+            bt.logging.info(f"Rewards: {_rewards}")
             if _rewards is None:
                 continue
 
@@ -226,6 +226,9 @@ async def forward(self: Validator):
         except Exception as e:
             bt.logging.error(f"Error while sending data to stats server: {e}")
             bt.logging.error(f"Prediction logs: {prediction_logs}")
+
+        bt.logging.info(f"Scored responses: {rewards}")
+        bt.logging.info(f"Score ids: {miner_ids}")
 
         mask = rewards > 0
         filtered_rewards = rewards[mask]
