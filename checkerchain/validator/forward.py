@@ -49,20 +49,16 @@ async def forward(self: Validator):
     It is responsible for querying the network and scoring the responses.
     """
     miner_uids = get_filtered_uids(self)
-    bt.logging.info(f"Eligible Miner UIDs: {miner_uids}")
     data = fetch_products()
-    bt.logging.info(f"new products to send to miners: {data.unmined_products}")
     products_to_score = []
     if len(data.reward_items):
         products_to_score = [r._id for r in data.reward_items]
-        bt.logging.info(f"Products to score: {[r._id for r in data.reward_items]}")
 
     if len(data.unmined_products):
         queries = data.unmined_products
     else:
         unmined_db_products = db_get_unreviewd_products()
         queries = [p._id for p in unmined_db_products]
-        bt.logging.info(f"Unmined products from DB: {queries}")
 
     responses = []
     if len(queries):
@@ -72,7 +68,6 @@ async def forward(self: Validator):
             timeout=25,
             deserialize=True,
         )
-        bt.logging.info(f"Received responses: {responses}")
 
         # Cross-check score, review sentiment, and keywords
         for miner_uid, miner_predictions in zip(miner_uids, responses):
@@ -87,11 +82,6 @@ async def forward(self: Validator):
                     prediction.get("keywords", [])
                     if isinstance(prediction, dict)
                     else []
-                )
-
-                # Log prediction details for monitoring
-                bt.logging.info(
-                    f"Miner {miner_uid} - Product {product_idx}: Score={score}, Keywords={keywords}"
                 )
 
                 # Basic validation logging
@@ -120,7 +110,7 @@ async def forward(self: Validator):
                         ),
                     )
     else:
-        bt.logging.info("No any products to send to miners.")
+        pass
 
     reward_product = None
     predictions = []
@@ -150,9 +140,8 @@ async def forward(self: Validator):
                 responses=predictions,
                 miner_uids=prediction_miners,
             )
-            bt.logging.info(f"Product ID: {reward_product._id}")
-            bt.logging.info(f"Miners: {prediction_miners}")
-            bt.logging.info(f"Rewards: {_rewards}")
+            if _rewards is None:
+                continue
 
             for i, (miner_id, reward, prediction) in enumerate(
                 zip(prediction_miners, _rewards, predictions)
@@ -237,9 +226,6 @@ async def forward(self: Validator):
         except Exception as e:
             bt.logging.error(f"Error while sending data to stats server: {e}")
             bt.logging.error(f"Prediction logs: {prediction_logs}")
-
-        bt.logging.info(f"Scored responses: {rewards}")
-        bt.logging.info(f"Score ids: {miner_ids}")
 
         mask = rewards > 0
         filtered_rewards = rewards[mask]

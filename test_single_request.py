@@ -18,9 +18,6 @@ from checkerchain.validator.reward import analyze_complete_response
 
 async def test_miner_single_request():
     """Test miner's single-request assessment generation."""
-    print("⛏️ Testing Miner Single-Request Assessment")
-    print("=" * 50)
-    
     # Mock product data
     test_product = {
         "name": "Premium DeFi Protocol",
@@ -29,19 +26,9 @@ async def test_miner_single_request():
         "category": "DeFi"
     }
     
-    print(f"📦 Product: {test_product['name']}")
-    print(f"📝 Description: {test_product['description']}")
-    print()
-    
     try:
         # Generate complete assessment in single request
         assessment = await generate_complete_assessment(test_product)
-        
-        print("✅ Generated Assessment:")
-        print(f"   Score: {assessment['score']}/100")
-        print(f"   Review: {assessment['review']}")
-        print(f"   Keywords: {assessment['keywords']}")
-        print()
         
         # Validate response structure
         assert "score" in assessment
@@ -53,19 +40,13 @@ async def test_miner_single_request():
         assert len(assessment["keywords"]) >= 3
         assert len(assessment["keywords"]) <= 7
         
-        print("✅ Response structure validated!")
-        
     except Exception as e:
-        print(f"❌ Miner test failed: {e}")
         import traceback
         traceback.print_exc()
 
 
 async def test_validator_single_request():
     """Test validator's single-request analysis."""
-    print("\n🔍 Testing Validator Single-Request Analysis")
-    print("=" * 50)
-    
     # Mock miner prediction
     test_prediction = {
         "score": 85.0,
@@ -74,13 +55,6 @@ async def test_validator_single_request():
     }
     
     actual_score = 82.0
-    
-    print(f"📊 Miner Prediction:")
-    print(f"   Score: {test_prediction['score']}/100")
-    print(f"   Review: {test_prediction['review']}")
-    print(f"   Keywords: {test_prediction['keywords']}")
-    print(f"   Actual Score: {actual_score}/100")
-    print()
     
     try:
         # Analyze complete response in single request

@@ -54,18 +54,12 @@ async def reward(
     Enhanced reward function that uses a single OpenAI request to analyze the complete response.
     Returns a comprehensive reward value for the miner.
     """
-    bt.logging.info(
-        f"reward called for miner {miner_uid} with prediction: {prediction.prediction}"
-    )
-
     if not prediction or not isinstance(prediction, MinerPrediction):
         bt.logging.warning(f"Invalid prediction for miner {miner_uid}: {prediction}")
         return 0.0
 
     # Use single-request analysis
-    bt.logging.info(f"Starting analysis for miner {miner_uid}")
     analysis_result = await analyze_complete_response(prediction, actual)
-    bt.logging.info(f"Analysis result for miner {miner_uid}: {analysis_result}")
 
     # Extract analysis components
     sentiment_score = 20 if analysis_result["sentiment"] != "unknown" else 5
@@ -83,13 +77,6 @@ async def reward(
     # Total score (max 100 points)
     total_score = perf_score + final_stake_score
 
-    bt.logging.info(
-        f"Miner UID: {miner_uid}, Score: {prediction.prediction}, "
-        f"Sentiment: {analysis_result['sentiment']}, Keyword Score: {keyword_score}, "
-        f"Coherence Score: {coherence_score}, Accuracy: {accuracy_score}, "
-        f"Performance: {perf_score}, Stake Score: {final_stake_score}, Total: {total_score}"
-    )
-
     return total_score
 
 
@@ -103,14 +90,7 @@ async def get_rewards(
     Enhanced reward function that processes responses asynchronously and returns
     comprehensive rewards based on score, sentiment, and keyword coherence.
     """
-    bt.logging.info(
-        f"get_rewards called with {len(responses)} responses and {len(miner_uids)} miner_uids"
-    )
-    bt.logging.info(f"Responses: {responses}")
-    bt.logging.info(f"Miner UIDs: {miner_uids}")
-
     if reviewed_product.trustScore == 0:
-        bt.logging.info("Actual score is 0, returning equal rewards")
         return np.full(len(responses), 100 / len(responses))
 
     # Process rewards asynchronously
@@ -119,7 +99,6 @@ async def get_rewards(
         if response.prediction is not None:
             task = reward(self, response, reviewed_product.trustScore, uid)
             reward_tasks.append((i, task))
-            bt.logging.info(f"Created reward task for miner {uid} at index {i}")
         else:
             bt.logging.info(
                 f"Skipping reward task for miner {uid} at index {i} - response is None"
@@ -128,13 +107,9 @@ async def get_rewards(
     # Execute all reward calculations concurrently
     rewards_dict = {}
     if reward_tasks:
-        bt.logging.info(f"Executing {len(reward_tasks)} reward tasks")
-        bt.logging.info(f"Reward tasks: {reward_tasks}")
-        print(f"Reward tasks: {reward_tasks}")
         results = await asyncio.gather(*[task for _, task in reward_tasks])
         for (i, _), result in zip(reward_tasks, results):
             rewards_dict[i] = result
-            bt.logging.info(f"Reward for index {i}: {result}")
     else:
         bt.logging.warning("No reward tasks to execute!")
 
@@ -142,24 +117,19 @@ async def get_rewards(
 
     # Keep top 90% of miners
     keep_count = int(np.ceil(0.9 * len(rewards_dict)))
-    bt.logging.info(f"Keeping top {keep_count} out of {len(rewards_dict)} miners")
 
     if len(rewards_dict) > 0:
         top_indices = sorted(
             rewards_dict.keys(), key=lambda k: rewards_dict[k], reverse=True
         )[:keep_count]
         kept_indices = set(top_indices)
-        bt.logging.info(f"Top indices: {top_indices}")
-        bt.logging.info(f"Kept indices: {kept_indices}")
     else:
         kept_indices = set()
-        bt.logging.warning("No rewards to process!")
 
     final_rewards = [
         rewards_dict[i] if i in kept_indices else 0.0 for i in range(len(responses))
     ]
 
-    bt.logging.info(f"Final rewards: {final_rewards}")
     return np.array(final_rewards)
 
 
@@ -190,12 +160,6 @@ def calculate_reward(analysis: dict) -> float:
 
         # Normalize to 0-1 range
         reward = max(0.0, min(1.0, total_score / 100.0))
-
-        bt.logging.info(
-            f"Reward calculation: accuracy={score_accuracy:.1f}, coherence={coherence_score:.1f}, "
-            f"keyword_verification={keyword_verification_score:.1f}, quality_keyword={quality_keyword_score:.1f}, "
-            f"total_score={total_score:.1f}, reward={reward:.3f}"
-        )
 
         return reward
 
