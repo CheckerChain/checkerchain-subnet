@@ -40,6 +40,12 @@ import bittensor as bt
 #   assert dummy_output == 2
 
 
+class CheckerChainMinerResponse(typing.NamedTuple):
+    score: float | None = None
+    review: str | None = None
+    keywords: list[str] = []
+
+
 class CheckerChainSynapse(bt.Synapse):
     """
     A protocol representation for handling request and response communication between
@@ -54,14 +60,21 @@ class CheckerChainSynapse(bt.Synapse):
     query: typing.List[str]
 
     # Response: list of dicts with 'score', 'review', and 'keywords' keys.
-    response: list[dict[str, typing.Any]] = []
+    response: typing.Optional[typing.List[CheckerChainMinerResponse]] = None
 
     def deserialize(self) -> list[dict[str, typing.Any]]:
         """
-        Deserialize the response. This method retrieves the response from
-        the miner, which is a list of dicts with 'score', 'review', and 'keywords'.
-
-        Returns:
-        - list[dict[str, typing.Any]]: The deserialized response.
+        Deserialize the synapse response into a list of dictionaries.
+        Each dictionary contains 'score', 'review', and 'keywords'.
         """
-        return self.response
+        if self.response is None:
+            return []
+
+        return [
+            {
+                "score": resp.score,
+                "review": resp.review,
+                "keywords": resp.keywords,
+            }
+            for resp in self.response
+        ]

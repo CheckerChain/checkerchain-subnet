@@ -142,7 +142,7 @@ def add_prediction_legacy(session: Session, product_id, miner_id, prediction):
     """
     Legacy function for backward compatibility - only stores the score.
     """
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
 
     ups_stmt = sqlite_upsert(MinerPrediction).values(
         product_id=product_id,

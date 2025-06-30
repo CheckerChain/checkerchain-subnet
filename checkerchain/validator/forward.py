@@ -122,11 +122,9 @@ async def forward(self: Validator):
     else:
         bt.logging.info("No any products to send to miners.")
 
-    # Get one product which has been reviewed and is ready to score.
-    # Adjust the scores based on responses from miners.
     reward_product = None
     predictions = []
-    miner_ids = np.array(miner_uids)  # Convert to numpy array for proper indexing
+    miner_ids = np.array(miner_uids)
     rewards = np.zeros_like(miner_ids, dtype=float)
     if data.reward_items:
         prediction_logs = []
@@ -156,7 +154,6 @@ async def forward(self: Validator):
             bt.logging.info(f"Miners: {prediction_miners}")
             bt.logging.info(f"Rewards: {_rewards}")
 
-            # Store analysis results for each miner
             for i, (miner_id, reward, prediction) in enumerate(
                 zip(prediction_miners, _rewards, predictions)
             ):
@@ -169,14 +166,8 @@ async def forward(self: Validator):
                         )
                         continue
 
-                    # Extract analysis data from the reward calculation
-                    # This assumes get_rewards returns analysis metadata
                     analysis_data = {
                         "total_reward": reward,
-                        # Note: These would need to be returned from get_rewards function
-                        # "sentiment": sentiment_result,
-                        # "keyword_verification_score": keyword_score,
-                        # "coherence_score": coherence_score,
                     }
 
                     # Update the prediction with analysis results
@@ -221,7 +212,7 @@ async def forward(self: Validator):
 
         try:
             # You don't need to worry about this part of the code, it's for data collection for owners
-            if IS_OWNER and JWT_SECRET:
+            if IS_OWNER and JWT_SECRET and len(prediction_logs) > 0:
                 token = jwt.encode(
                     {"sub": self.metagraph.coldkeys[0]},
                     JWT_SECRET,

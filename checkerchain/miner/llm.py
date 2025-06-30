@@ -9,6 +9,7 @@ from typing import List
 import json
 import re
 from checkerchain.database.model import MinerPrediction
+import time
 
 
 class ScoreBreakdown(BaseModel):
@@ -446,10 +447,12 @@ async def generate_complete_assessment(product_data: UnreviewedProduct) -> dict:
         bt.logging.error(f"Error in complete assessment generation: {e}")
         # Return fallback response
         return {
-            "score": 50.0,
-            "review": "Unable to assess this product at this time.",
-            "keywords": ["unknown", "unassessed", "pending"],
+            "score": None,
+            "review": None,
+            "keywords": [],
         }
+    finally:
+        time.sleep(0.01)
 
 
 async def analyze_complete_response(
@@ -592,6 +595,8 @@ async def analyze_complete_response(
             "quality_keyword_count": 0,
             "quality_keyword_matches": [],
         }
+    finally:
+        time.sleep(0.01)
 
 
 async def analyze_keyword_coherence(

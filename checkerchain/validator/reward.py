@@ -96,7 +96,7 @@ async def reward(
 async def get_rewards(
     self: Validator,
     reviewed_product: ReviewedProduct,
-    responses: list[dict | None],
+    responses: list[MinerPrediction],
     miner_uids: list[int],
 ) -> np.ndarray:
     """
@@ -116,7 +116,7 @@ async def get_rewards(
     # Process rewards asynchronously
     reward_tasks = []
     for i, (response, uid) in enumerate(zip(responses, miner_uids)):
-        if response is not None:
+        if response.prediction is not None:
             task = reward(self, response, reviewed_product.trustScore, uid)
             reward_tasks.append((i, task))
             bt.logging.info(f"Created reward task for miner {uid} at index {i}")

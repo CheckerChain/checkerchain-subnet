@@ -41,7 +41,7 @@ def fetch_products():
         return FetchProductsReturnType([], [], [])
 
     if response_unreviewed.status_code != 200:
-        bt.logging.errorint(
+        bt.logging.error(
             f"Error fetching unreviewed products: {response_unreviewed.status_code}"
         )
         return FetchProductsReturnType([], [], [])

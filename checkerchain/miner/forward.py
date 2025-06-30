@@ -21,7 +21,7 @@ async def forward(self: Miner, synapse: checkerchain.protocol.CheckerChainSynaps
     tasks = []
     product_ids = []
     responses = [None] * len(synapse.query)  # Placeholder for response dicts
-
+    results = []
     for i, product_id in enumerate(synapse.query):
         if product_id in miner_preds:
             bt.logging.info(
@@ -37,24 +37,28 @@ async def forward(self: Miner, synapse: checkerchain.protocol.CheckerChainSynaps
             else:
                 bt.logging.warning(f"Product not found for {product_id}")
                 responses[i] = {"score": None, "review": None, "keywords": []}
+    if len(tasks) > 0:
+        bt.logging.info("Running OpenAI assessment tasks...")
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        tasks = []
 
-    bt.logging.info("Running OpenAI assessment tasks...")
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    if len(results) > 0:
+        for task_index, result in enumerate(results):
+            i, product_id = product_ids[task_index]
+            try:
+                if isinstance(result, Exception):
+                    raise result
 
-    for task_index, result in enumerate(results):
-        i, product_id = product_ids[task_index]
-        try:
-            if isinstance(result, Exception):
-                raise result
-            
-            # Store the complete assessment in cache
-            miner_preds[product_id] = result
-            responses[i] = result
-            
-            bt.logging.info(f"Complete assessment for product {product_id}: Score={result['score']}, Keywords={result['keywords']}, Review={result['review']}")
-        except Exception as e:
-            bt.logging.error(f"Error assessing product {product_id}: {e}")
-            responses[i] = {"score": None, "review": None, "keywords": []}
+                # Store the complete assessment in cache
+                miner_preds[product_id] = result
+                responses[i] = result
+
+                bt.logging.info(
+                    f"Complete assessment for product {product_id}: Score={result['score']}, Keywords={result['keywords']}, Review={result['review']}"
+                )
+            except Exception as e:
+                bt.logging.error(f"Error assessing product {product_id}: {e}")
+                responses[i] = {"score": None, "review": None, "keywords": []}
 
     synapse.response = responses
     return synapse
