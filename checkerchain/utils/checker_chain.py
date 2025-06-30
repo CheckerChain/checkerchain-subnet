@@ -3,7 +3,11 @@ from typing import List
 import requests
 import bittensor as bt
 
-from checkerchain.database.actions import add_product, get_products
+from checkerchain.database.actions import (
+    add_product,
+    get_products,
+    remove_bulk_products,
+)
 from checkerchain.types.checker_chain import (
     ReviewedProduct,
     ReviewedProductsApiResponse,
@@ -16,6 +20,7 @@ from checkerchain.types.checker_chain import (
 class FetchProductsReturnType:
     unmined_products: List[str]
     reward_items: List[ReviewedProduct]
+    orphaned_products: List[str]
 
 
 def fetch_products():
@@ -33,13 +38,13 @@ def fetch_products():
         bt.logging.error(
             f"Error fetching reviewed products: {response_reviewed.status_code}"
         )
-        return FetchProductsReturnType([], [])
+        return FetchProductsReturnType([], [], [])
 
     if response_unreviewed.status_code != 200:
-        bt.logging.errorint(
+        bt.logging.error(
             f"Error fetching unreviewed products: {response_unreviewed.status_code}"
         )
-        return FetchProductsReturnType([], [])
+        return FetchProductsReturnType([], [], [])
 
     reviewed_response = ReviewedProductsApiResponse.from_dict(response_reviewed.json())
     unreviewed_response = UnreviewedProductsApiResponse.from_dict(
@@ -49,7 +54,7 @@ def fetch_products():
     if not isinstance(reviewed_response, ReviewedProductsApiResponse) or not isinstance(
         unreviewed_response, UnreviewedProductsApiResponse
     ):
-        return FetchProductsReturnType([], [])
+        return FetchProductsReturnType([], [], [])
 
     reviewed_products = reviewed_response.data.products
     unreviewed_products = unreviewed_response.data.products
@@ -60,18 +65,31 @@ def fetch_products():
     unmined_products: List[str] = []
     reward_items: List[ReviewedProduct] = []
 
+    api_product_ids = set()
+
     # Process unreviewed products (newly published ones)
     for product in unreviewed_products:
+        api_product_ids.add(product._id)
         if product._id not in existing_product_ids:
             add_product(product._id, product.name)
             unmined_products.append(product._id)
 
     # Process reviewed products (existing ones for reward)
     for product in reviewed_products:
+        api_product_ids.add(product._id)
         if product._id in existing_product_ids:
             reward_items.append(product)
 
-    return FetchProductsReturnType(unmined_products, reward_items)
+    # Find and remove orphaned products (in DB but not in API)
+    orphaned_product_ids = existing_product_ids - api_product_ids
+    if orphaned_product_ids:
+        orphaned_list = list(orphaned_product_ids)
+        bt.logging.info(f"Removing orphaned products: {orphaned_list}")
+        remove_bulk_products(orphaned_list)
+
+    return FetchProductsReturnType(
+        unmined_products, reward_items, list(orphaned_product_ids)
+    )
 
 
 def fetch_product_data(product_id):

@@ -70,7 +70,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         try:
             self.load_state()
-        except FileNotFoundError:
+        except Exception as e:
             bt.logging.warning("No state found. Initializing new state.")
 
         self.step = 0

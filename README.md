@@ -22,6 +22,13 @@ Check our [Whitepaper](https://docs.checkerchain.com/whitepaper/checkerchain-whi
 - [Validator](#validator)
   - [Requirements](#requirements)
   - [Running Validator](#running-validator)
+- [Auto-Updater Script](#auto-updater-script)
+  - [Features](#features)
+  - [Usage](#usage)
+  - [Integration with PM2](#integration-with-pm2)
+  - [Cron Job Setup](#cron-job-setup)
+  - [Logging](#logging)
+  - [Safety Features](#safety-features)
 - [Game Theory on Subnet With tRCM](#game-theory-on-subnet-with-trcm)
 - [Resources of CheckerChain](#resources-of-checkerchain)
 - [Contributing](#contributing)
@@ -133,6 +140,100 @@ Validator is responsible for fetching products from CheckerChain dApp, distribut
 
 Before you proceed with the installation of the subnet, note the following: \
 [Running a Validator in Checkerchain](docs/running_miner_or_vali.md)
+
+---
+
+## Auto-Updater Script
+
+CheckerChain subnet includes an automated update script that helps keep your miner or validator deployment up-to-date with the latest changes from the repository. This is particularly useful for production deployments where manual updates can be time-consuming and error-prone.
+
+### Features
+
+- **Automatic Git Updates**: Pulls the latest changes from the specified branch
+- **Dependency Management**: Automatically updates Python dependencies
+- **Application Restart**: Optionally restarts your application after updates
+- **Safety Checks**: Ensures you're on the correct branch before updating
+- **Comprehensive Logging**: Logs all operations to both file and console
+
+### Usage
+
+The autoupdater script is located at `scripts/autoupdater.py` and can be run with various options:
+
+#### Basic Usage
+
+```bash
+# Update from current directory using default settings
+python scripts/autoupdater.py
+
+# Update with custom repository path
+python scripts/autoupdater.py --repo-path /path/to/checkerchain-subnet --venv path/to/venv
+
+# Update from a specific branch
+python scripts/autoupdater.py --branch develop
+```
+
+#### Advanced Options
+
+```bash
+# Full command with all options
+python scripts/autoupdater.py \
+    --repo-path /path/to/checkerchain-subnet \
+    --branch main \
+    --requirements requirements.txt \
+    --venv /path/to/.venv \
+    --restart-command "pm2 restart checkerchain-miner" \
+    --force
+```
+
+#### Parameters
+
+| Parameter           | Description                                | Default                      |
+| ------------------- | ------------------------------------------ | ---------------------------- |
+| `--repo-path`       | Path to the repository                     | Current directory            |
+| `--branch`          | Branch to pull from                        | `main`                       |
+| `--requirements`    | Path to requirements file                  | `requirements.txt`           |
+| `--venv`            | Path to virtual environment                | `.venv` in current directory |
+| `--restart-command` | Command to restart application             | None                         |
+| `--force`           | Force update even if not on default branch | False                        |
+
+### Integration with PM2
+
+For production deployments using PM2, you can set up automatic updates:
+
+```bash
+# Example restart commands for different setups
+--restart-command "pm2 restart checkerchain-miner"
+--restart-command "pm2 restart checkerchain-validator"
+--restart-command "systemctl restart checkerchain"
+```
+
+### Cron Job Setup
+
+To run automatic updates on a schedule, add a cron job:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add entry to run updates every day at 2 AM
+0 2 * * * cd /path/to/checkerchain-subnet && python scripts/autoupdater.py --venv /path/to/venv --restart-command "pm2 restart checkerchain-miner" >> /var/log/checkerchain-autoupdate.log 2>&1
+```
+
+### Logging
+
+The autoupdater creates detailed logs in `autoupdate.log` in the repository directory. Monitor this file to track update operations:
+
+```bash
+# View recent update logs
+tail -f autoupdate.log
+```
+
+### Safety Features
+
+- **Branch Verification**: Only updates if you're on the specified branch (unless `--force` is used)
+- **Git Repository Check**: Verifies the directory is a valid git repository
+- **Dependency Validation**: Checks if requirements file exists before attempting updates
+- **Error Handling**: Comprehensive error handling with detailed logging
 
 ---
 

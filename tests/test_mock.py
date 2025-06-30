@@ -97,11 +97,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
         if dendrite.process_time >= timeout + 0.1:
             assert dendrite.status_code == 408
             assert dendrite.status_message == "Timeout"
-            assert synapse.dummy_output == synapse.dummy_input
         # check that responses which take less than timeout have 200 status code
         elif dendrite.process_time < timeout:
             assert dendrite.status_code == 200
             assert dendrite.status_message == "OK"
-            # check that outputs are not empty for successful responses
-            assert synapse.dummy_output == synapse.dummy_input * 2
-        # dont check for responses which take between timeout and max_time because they are not guaranteed to have a status code of 200 or 408

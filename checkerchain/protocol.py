@@ -40,37 +40,41 @@ import bittensor as bt
 #   assert dummy_output == 2
 
 
+class CheckerChainMinerResponse(typing.NamedTuple):
+    score: float | None = None
+    review: str | None = None
+    keywords: list[str] = []
+
+
 class CheckerChainSynapse(bt.Synapse):
     """
-    A simple dummy protocol representation which uses bt.Synapse as its base.
-    This protocol helps in handling dummy request and response communication between
-    the miner and the validator.
+    A protocol representation for handling request and response communication between
+    the miner and the validator, where each response contains a score, review, and keywords.
 
     Attributes:
-    - dummy_input: An integer value representing the input request sent by the validator.
-    - dummy_output: An optional integer value which, when filled, represents the response from the miner.
+    - query: A list of strings representing the input request sent by the validator.
+    - response: A list of dictionaries, each with keys 'score' (float), 'review' (str, max 140 chars), and 'keywords' (list[str], ~5 keywords), representing the miner's response.
     """
 
     # Required request input, filled by sending dendrite caller.
     query: typing.List[str]
 
-    # Optional request output, filled by receiving axon.
-    response: list[typing.Optional[float]] = []
+    # Response: list of dicts with 'score', 'review', and 'keywords' keys.
+    response: typing.Optional[typing.List[CheckerChainMinerResponse]] = None
 
-    def deserialize(self) -> int:
+    def deserialize(self) -> list[dict[str, typing.Any]]:
         """
-        Deserialize the dummy output. This method retrieves the response from
-        the miner in the form of dummy_output, deserializes it and returns it
-        as the output of the dendrite.query() call.
-
-        Returns:
-        - int: The deserialized response, which in this case is the value of dummy_output.
-
-        Example:
-        Assuming a Dummy instance has a dummy_output value of 5:
-        >>> dummy_instance = Dummy(dummy_input=4)
-        >>> dummy_instance.dummy_output = 5
-        >>> dummy_instance.deserialize()
-        5
+        Deserialize the synapse response into a list of dictionaries.
+        Each dictionary contains 'score', 'review', and 'keywords'.
         """
-        return self.response
+        if self.response is None:
+            return []
+
+        return [
+            {
+                "score": resp.score,
+                "review": resp.review,
+                "keywords": resp.keywords,
+            }
+            for resp in self.response
+        ]
