@@ -158,6 +158,17 @@ def restart_application(restart_command, repo_path):
     return False
 
 
+def run_migrations(repo_path):
+    # run alembic migrations
+    logger.info("Running database migrations")
+    alembic_cmd = "alembic upgrade head"
+    if run_command(alembic_cmd, cwd=repo_path) is not None:
+        logger.info("Database migrations completed successfully")
+        return True
+    logger.error("Failed to run database migrations")
+    return False
+
+
 def main():
     args = parse_arguments()
 
@@ -191,6 +202,10 @@ def main():
         # Update dependencies
         if not update_dependencies(args.repo_path, args.requirements, args.venv):
             logger.error("Failed to update dependencies")
+            return 1
+
+        if not run_migrations(args.repo_path):
+            logger.error("Failed to run database migrations")
             return 1
 
         # Restart application if needed
