@@ -48,8 +48,7 @@ async def forward(self: Validator):
     The forward function is called by the validator every time step.
     It is responsible for querying the network and scoring the responses.
     """
-    # miner_uids = get_filtered_uids(self)
-    miner_uids = self.metagraph.uids.tolist()
+    miner_uids = get_filtered_uids(self)
     bt.logging.info(f"Eligible Miner UIDs: {miner_uids}")
     data = fetch_products()
     bt.logging.info(f"new products to send to miners: {data.unmined_products}")

@@ -53,36 +53,53 @@ def remove_product(session: Session, _id):
 
 
 @with_db_session
+def remove_bulk_products(session: Session, product_ids: ty.List[str]):
+    """
+    Remove multiple products from the database.
+
+    Args:
+        product_ids: List of product IDs to remove.
+    """
+    if not product_ids:
+        return
+
+    session.execute(delete(Product).where(Product._id.in_(product_ids)))
+    session.commit()
+
+
+@with_db_session
 def add_prediction(
-    session: Session, 
-    product_id, 
-    miner_id, 
-    prediction_data,
-    analysis_data=None
+    session: Session, product_id, miner_id, prediction_data, analysis_data=None
 ):
     """
     Add a complete miner prediction to the database.
-    
+
     Args:
         prediction_data: Dict containing 'score', 'review', 'keywords'
         analysis_data: Dict containing 'sentiment', 'keyword_verification_score', 'coherence_score', 'total_reward'
     """
     now = datetime.utcnow().isoformat()
-    
+
     # Extract data from prediction_data
     score = prediction_data.get("score") if isinstance(prediction_data, dict) else None
-    review = prediction_data.get("review") if isinstance(prediction_data, dict) else None
-    keywords = prediction_data.get("keywords", []) if isinstance(prediction_data, dict) else []
-    
+    review = (
+        prediction_data.get("review") if isinstance(prediction_data, dict) else None
+    )
+    keywords = (
+        prediction_data.get("keywords", []) if isinstance(prediction_data, dict) else []
+    )
+
     # Extract analysis data
     sentiment = analysis_data.get("sentiment") if analysis_data else None
-    keyword_verification_score = analysis_data.get("keyword_verification_score") if analysis_data else None
+    keyword_verification_score = (
+        analysis_data.get("keyword_verification_score") if analysis_data else None
+    )
     coherence_score = analysis_data.get("coherence_score") if analysis_data else None
     total_reward = analysis_data.get("total_reward") if analysis_data else None
-    
+
     # Convert keywords to JSON string
     keywords_json = json.dumps(keywords) if keywords else None
-    
+
     ups_stmt = sqlite_upsert(MinerPrediction).values(
         product_id=product_id,
         miner_id=int(miner_id),
@@ -90,7 +107,11 @@ def add_prediction(
         review=review,
         keywords=keywords_json,
         sentiment=sentiment,
-        keyword_verification_score=float(keyword_verification_score) if keyword_verification_score is not None else None,
+        keyword_verification_score=(
+            float(keyword_verification_score)
+            if keyword_verification_score is not None
+            else None
+        ),
         coherence_score=float(coherence_score) if coherence_score is not None else None,
         total_reward=float(total_reward) if total_reward is not None else None,
         created_at=now,
@@ -110,7 +131,7 @@ def add_prediction(
             coherence_score=ups_stmt.excluded.coherence_score,
             total_reward=ups_stmt.excluded.total_reward,
             updated_at=now,
-        )
+        ),
     )
     session.execute(query)
     session.commit()
@@ -122,7 +143,7 @@ def add_prediction_legacy(session: Session, product_id, miner_id, prediction):
     Legacy function for backward compatibility - only stores the score.
     """
     now = datetime.utcnow().isoformat()
-    
+
     ups_stmt = sqlite_upsert(MinerPrediction).values(
         product_id=product_id,
         miner_id=int(miner_id),
@@ -136,10 +157,10 @@ def add_prediction_legacy(session: Session, product_id, miner_id, prediction):
             "miner_id",
         ],
         set_=dict(
-            miner_id=ups_stmt.excluded.miner_id, 
+            miner_id=ups_stmt.excluded.miner_id,
             prediction=ups_stmt.excluded.prediction,
             updated_at=now,
-        )
+        ),
     )
     session.execute(query)
     session.commit()
