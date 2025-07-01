@@ -186,7 +186,11 @@ async def forward(self: Validator):
                             "hotkey": self.metagraph.hotkeys[miner_id],
                             "coldkey": self.metagraph.coldkeys[miner_id],
                             "review": prediction.review,
-                            "keywords": json.loads(prediction.keywords),
+                            "keywords": (
+                                json.loads(prediction.keywords)
+                                if prediction.keywords is not None
+                                else []
+                            ),
                             "sentiment": prediction.sentiment,
                             "uid": int(miner_id),
                         }
