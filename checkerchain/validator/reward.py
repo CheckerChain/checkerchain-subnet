@@ -63,9 +63,9 @@ async def reward(
 
     # Extract analysis components
     sentiment_score = 20 if analysis_result["sentiment"] != "unknown" else 5
-    keyword_score = analysis_result["keyword_verification_score"]
-    coherence_score = min(analysis_result["coherence_score"], 10)  # Cap at 10
-    accuracy_score = analysis_result["score_accuracy"]
+    keyword_score = min(analysis_result["keyword_verification_score"], 5)
+    coherence_score = min(analysis_result["coherence_score"], 20)  # Cap at 20
+    accuracy_score = min(analysis_result["score_accuracy"], 40)
 
     # Calculate performance score (0-60 points)
     perf_score = accuracy_score + sentiment_score + keyword_score + coherence_score
