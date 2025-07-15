@@ -504,11 +504,11 @@ async def analyze_complete_response(
            - Review-Keyword Consistency (0-5): Do keywords match the review sentiment?
 
         4. **Score Accuracy (0-40):** How close is the predicted score to actual?
-           - 40: Within 5% of actual score
-           - 30: Within 10% of actual score  
-           - 20: Within 20% of actual score
-           - 10: Within 30% of actual score
-           - 0: More than 30% deviation
+           - 40: Within 2% of actual score
+           - 30: Within 6% of actual score  
+           - 20: Within 8% of actual score
+           - 10: Within 10% of actual score
+           - 0: More than 100% deviation
 
         5. **Quality Keyword Analysis:** Evaluate which keywords are quality-descriptive
            - Quality keywords describe product quality, trust, risk, or performance
