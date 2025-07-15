@@ -47,6 +47,16 @@ def get_stake_score(self: Validator, miner_uid: int):
     return (miner_stake - min_stake) / (max_stake - min_stake)
 
 
+def get_deviation_percentage(prediction: float, actual: float) -> float:
+    """
+    Calculate the percentage deviation of a prediction from the actual value.
+    Returns 0 if actual is 0 to avoid division by zero.
+    """
+    if actual == 0:
+        return 0.0
+    return abs((prediction - actual) / actual) * 100
+
+
 async def reward(
     self: Validator, prediction: MinerPrediction, actual: float, miner_uid: int
 ) -> float:
@@ -56,6 +66,12 @@ async def reward(
     """
     if not prediction or not isinstance(prediction, MinerPrediction):
         bt.logging.warning(f"Invalid prediction for miner {miner_uid}: {prediction}")
+        return 0.0
+
+    if get_deviation_percentage(prediction.prediction, actual) > 10:
+        bt.logging.warning(
+            f"Prediction {prediction.prediction} deviates too much from actual {actual} for miner {miner_uid}"
+        )
         return 0.0
 
     # Use single-request analysis
