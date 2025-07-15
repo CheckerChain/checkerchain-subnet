@@ -508,7 +508,7 @@ async def analyze_complete_response(
            - 30: Within 6% of actual score  
            - 20: Within 8% of actual score
            - 10: Within 10% of actual score
-           - 0: More than 100% deviation
+           - 0: More than 10% deviation
 
         5. **Quality Keyword Analysis:** Evaluate which keywords are quality-descriptive
            - Quality keywords describe product quality, trust, risk, or performance
