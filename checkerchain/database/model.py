@@ -38,20 +38,36 @@ class MinerPrediction(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     product_id = Column(String, ForeignKey("products._id"), nullable=False)
     miner_id = Column(Integer, nullable=False)
-    
+
     # Core prediction data
     prediction = Column(Float)  # Numerical score (0-100)
     review = Column(Text)  # Review text (max 140 chars)
     keywords = Column(JSON)  # List of keywords as JSON
-    
+
     # Analysis metadata
     sentiment = Column(String)  # positive, neutral, negative, unknown
     keyword_verification_score = Column(Float)  # 0-5 score
     coherence_score = Column(Float)  # 0-15 score
     total_reward = Column(Float)  # Final reward score
-    
+
     # Timestamps
     created_at = Column(String)  # ISO timestamp
     updated_at = Column(String)  # ISO timestamp
 
     product = relationship("Product", back_populates="predictions")
+
+
+class BlacklistedMiners(Base):
+    __tablename__ = "blacklisted_miners"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    miner_id = Column(Integer, nullable=False)
+    hotkey = Column(String, nullable=False, unique=True)
+    coldkey = Column(String, nullable=False)
+    blacklist_count = Column(Integer, default=1)
+    reason = Column(String, nullable=False)
+    created_at = Column(String)
+    updated_at = Column(String)
+
+    def __repr__(self):
+        return f"<BlacklistedMiner(miner_id={self.miner_id}, reason={self.reason})>"

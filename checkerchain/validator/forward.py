@@ -31,6 +31,7 @@ from checkerchain.database.actions import (
     get_predictions_for_product,
     delete_a_product,
     db_get_unreviewd_products,
+    add_or_update_blacklisted_miner,
 )
 from checkerchain.validator.reward import get_rewards
 from neurons.validator import Validator
@@ -49,6 +50,7 @@ async def forward(self: Validator):
     It is responsible for querying the network and scoring the responses.
     """
     miner_uids = get_filtered_uids(self)
+    bt.logging.info(f"Miner UIDs: {miner_uids}, count: {len(miner_uids)}")
     data = fetch_products()
     products_to_score = []
     if len(data.reward_items):
@@ -68,7 +70,7 @@ async def forward(self: Validator):
             timeout=25,
             deserialize=True,
         )
-        bt.logging.info(f"Received responses: {responses}")
+        bt.logging.info(f"Received responses: {len(responses)}")
 
         for miner_uid, miner_predictions in zip(miner_uids, responses):
             for product_idx, prediction in enumerate(miner_predictions):
@@ -146,6 +148,16 @@ async def forward(self: Validator):
             for i, (miner_id, reward, prediction) in enumerate(
                 zip(prediction_miners, _rewards, predictions)
             ):
+                import math
+
+                if reward == -math.inf:
+                    add_or_update_blacklisted_miner(
+                        miner_id=miner_id,
+                        hotkey=self.metagraph.hotkeys[miner_id],
+                        coldkey=self.metagraph.coldkeys[miner_id],
+                        reason="Malicious sentiment detected",
+                    )
+                    continue
                 if reward is None:
                     continue
                 try:

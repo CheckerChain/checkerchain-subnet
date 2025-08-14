@@ -77,6 +77,13 @@ async def reward(
     # Use single-request analysis
     analysis_result = await analyze_complete_response(prediction, actual)
 
+    if analysis_result["sentiment"] == "malicious":
+        bt.logging.warning(
+            f"Malicious review spotted for miner {miner_uid}, blacklisting"
+        )
+        import math
+
+        return -math.inf
     # Extract analysis components
     sentiment_score = 20 if analysis_result["sentiment"] != "unknown" else 5
     keyword_score = min(analysis_result["keyword_verification_score"], 5)
