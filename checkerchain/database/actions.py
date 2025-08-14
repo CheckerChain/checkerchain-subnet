@@ -4,7 +4,7 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_upsert
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
-from checkerchain.database.model import Product, MinerPrediction
+from checkerchain.database.model import Product, MinerPrediction, BlacklistedMiners
 from .utils import with_db_session
 import typing as ty
 
@@ -195,3 +195,45 @@ def delete_a_product(session: Session, product_id):
 @with_db_session
 def db_get_unreviewd_products(session: Session):
     return session.query(Product).filter(Product.check_chain_review_done == False).all()
+
+
+@with_db_session
+def get_blacklisted_miners_hotkeys(session: Session):
+    """
+    Fetch all blacklisted miners from the database.
+    """
+    return (
+        session.query(BlacklistedMiners.hotkey)
+        .where(BlacklistedMiners.blacklist_count > 1)
+        .all()
+    )
+
+
+@with_db_session
+def add_or_update_blacklisted_miner(
+    session: Session, miner_id: int, hotkey: str, coldkey: str, reason: str
+):
+    """
+    Add or update a blacklisted miner in the database.
+    If the hotkey already exists, it will be updated with the new miner_id.
+    """
+    now = datetime.utcnow().isoformat()
+
+    ups_stmt = sqlite_upsert(BlacklistedMiners).values(
+        miner_id=miner_id,
+        hotkey=hotkey,
+        updated_at=now,
+        coldkey=coldkey,
+        reason=reason,
+    )
+    query = ups_stmt.on_conflict_do_update(
+        index_elements=["hotkey"],
+        set_=dict(
+            miner_id=ups_stmt.excluded.miner_id,
+            updated_at=now,
+            coldkey=ups_stmt.excluded.coldkey,
+            blacklist_count=BlacklistedMiners.blacklist_count + 1,
+        ),
+    )
+    session.execute(query)
+    session.commit()

@@ -3,6 +3,7 @@ import bittensor as bt
 import numpy as np
 from typing import List
 import copy
+from checkerchain.database.actions import get_blacklisted_miners_hotkeys
 
 
 def check_uid_availability(
@@ -64,11 +65,19 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> np.ndarray:
 
 
 def get_filtered_uids(self, max_per_key: int = 15) -> np.ndarray:
+    blacklisted_hotkeys = get_blacklisted_miners_hotkeys()
+    blacklisted_hotkeys_set = {t[0] for t in blacklisted_hotkeys}
+    bt.logging.info(
+        f"Blacklisted hotkeys: {blacklisted_hotkeys_set}, count: {len(blacklisted_hotkeys_set)}"
+    )
+    hotkeys = copy.deepcopy(self.metagraph.hotkeys)
     coldkeys = copy.deepcopy(self.metagraph.coldkeys)
     counts = {}
     available_uids = []
 
-    for i, ck in enumerate(coldkeys):
+    for i, (ck, hk) in enumerate(zip(coldkeys, hotkeys)):
+        if hk in blacklisted_hotkeys_set:
+            continue
         cnt = counts.get(ck, 0)
         if cnt < max_per_key:
             if check_uid_availability(

@@ -23,7 +23,7 @@ import bittensor as bt
 from .logging import setup_events_logger
 import dotenv
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(override=True)
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
