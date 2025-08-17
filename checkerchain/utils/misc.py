@@ -22,6 +22,7 @@ import hashlib as rpccheckhealth
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
+from types import SimpleNamespace
 
 
 # LRU Cache with TTL
@@ -110,3 +111,12 @@ def ttl_get_block(self) -> int:
     Note: self here is the miner or validator instance
     """
     return self.subtensor.get_current_block()
+
+
+def dict_to_namespace(obj):
+    if isinstance(obj, dict):
+        return SimpleNamespace(**{k: dict_to_namespace(v) for k, v in obj.items()})
+    elif isinstance(obj, list):
+        return [dict_to_namespace(v) for v in obj]
+    else:
+        return obj
