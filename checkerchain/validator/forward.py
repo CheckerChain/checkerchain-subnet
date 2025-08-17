@@ -51,17 +51,18 @@ async def forward(self: Validator):
     """
     miner_uids = get_filtered_uids(self)
     bt.logging.info(f"Miner UIDs: {miner_uids}, count: {len(miner_uids)}")
-    data = fetch_products()
+    unmined_products, reward_items, _ = fetch_products()
     products_to_score = []
-    if len(data.reward_items):
-        products_to_score = [r._id for r in data.reward_items]
+    if len(reward_items):
+        products_to_score = [r._id for r in reward_items]
 
-    if len(data.unmined_products):
-        queries = data.unmined_products
+    if len(unmined_products):
+        queries = unmined_products
     else:
         unmined_db_products = db_get_unreviewd_products()
         queries = [p._id for p in unmined_db_products]
-
+    bt.logging.info(f"Products to send to miners: {queries}")
+    bt.logging.info(f"Products to score: {products_to_score}")
     responses = []
     if len(queries):
         responses = await self.dendrite(
@@ -115,9 +116,9 @@ async def forward(self: Validator):
     predictions = []
     miner_ids = np.array(miner_uids)
     rewards = np.zeros_like(miner_ids, dtype=float)
-    if data.reward_items:
+    if reward_items:
         prediction_logs = []
-        for reward_product in data.reward_items:
+        for reward_product in reward_items:
             product_predictions = get_predictions_for_product(reward_product._id) or []
             if not product_predictions:
                 continue
@@ -250,7 +251,7 @@ async def forward(self: Validator):
         filtered_rewards = rewards[mask]
         filtered_miner_ids = miner_ids[mask]  # Now miner_ids is a numpy array
         self.update_scores(filtered_rewards, filtered_miner_ids.tolist())
-        for reward_product in data.reward_items:
+        for reward_product in reward_items:
             delete_a_product(reward_product._id)
     else:
         self.update_to_last_scores()

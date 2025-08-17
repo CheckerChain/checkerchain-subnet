@@ -15,6 +15,8 @@ from checkerchain.types.checker_chain import (
     UnreviewedProductsApiResponse,
 )
 
+from .misc import dict_to_namespace
+
 
 @dataclass
 class FetchProductsReturnType:
@@ -50,10 +52,13 @@ def fetch_products():
     unreviewed_response = UnreviewedProductsApiResponse.from_dict(
         response_unreviewed.json()
     )
-
-    if not isinstance(reviewed_response, ReviewedProductsApiResponse) or not isinstance(
-        unreviewed_response, UnreviewedProductsApiResponse
+    if not (
+        hasattr(reviewed_response, "data")
+        and hasattr(unreviewed_response, "data")
+        and hasattr(reviewed_response.data, "products")
+        and hasattr(unreviewed_response.data, "products")
     ):
+        bt.logging.error("Invalid API response structure.")
         return FetchProductsReturnType([], [], [])
 
     reviewed_products = reviewed_response.data.products
@@ -63,7 +68,7 @@ def fetch_products():
     all_products = get_products()
     existing_product_ids = {p._id for p in all_products}
     unmined_products: List[str] = []
-    reward_items: List[ReviewedProduct] = []
+    reward_items = []
 
     api_product_ids = set()
 
@@ -78,7 +83,17 @@ def fetch_products():
     for product in reviewed_products:
         api_product_ids.add(product._id)
         if product._id in existing_product_ids:
-            reward_items.append(product)
+            reward_items.append(
+                dict_to_namespace(
+                    {
+                        "_id": product._id,
+                        "name": product.name,
+                        "trustScore": product.trustScore,
+                        "slug": product.slug,
+                        "status": product.status,
+                    }
+                )
+            )
 
     # Find and remove orphaned products (in DB but not in API)
     orphaned_product_ids = existing_product_ids - api_product_ids
@@ -87,20 +102,25 @@ def fetch_products():
         bt.logging.info(f"Removing orphaned products: {orphaned_list}")
         remove_bulk_products(orphaned_list)
 
-    return FetchProductsReturnType(
-        unmined_products, reward_items, list(orphaned_product_ids)
-    )
+    return unmined_products, reward_items, list(orphaned_product_ids)
 
 
 def fetch_product_data(product_id):
     """Fetch product data from the API using the product ID."""
-    url = f"https://backend.checkerchain.com/api/v1/products/{product_id}"
+    url = f"https://api.checkerchain.com/api/v1/products/{product_id}"
     response = requests.get(url)
     if response.status_code == 200:
         productData = UnreviewedProductApiResponse.from_dict(response.json())
-        if not (isinstance(productData, UnreviewedProductApiResponse)):
-            return None
-        return productData.data
+        if hasattr(productData, "data"):
+            return dict_to_namespace(
+                {
+                    "_id": productData.data._id,
+                    "name": productData.data.name,
+                    "url": productData.data.url,
+                    "description": productData.data.description,
+                    "category": productData.data.category,
+                }
+            )
     else:
         bt.logging.error(
             "Error fetching product data:", response.status_code, response.text
