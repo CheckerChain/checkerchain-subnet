@@ -74,30 +74,6 @@ async def forward(self: Validator):
         bt.logging.info(f"Received responses: {len(responses)}")
 
         for miner_uid, miner_predictions in zip(miner_uids, responses):
-            for product_idx, prediction in enumerate(miner_predictions):
-                score = (
-                    prediction.get("score") if isinstance(prediction, dict) else None
-                )
-                review = (
-                    prediction.get("review") if isinstance(prediction, dict) else None
-                )
-                keywords = (
-                    prediction.get("keywords", [])
-                    if isinstance(prediction, dict)
-                    else []
-                )
-
-                if keywords:
-                    if len(keywords) < 3:
-                        bt.logging.warning(
-                            f"Miner {miner_uid}: Too few keywords ({len(keywords)}): {keywords}"
-                        )
-                    elif len(keywords) > 7:
-                        bt.logging.warning(
-                            f"Miner {miner_uid}: Too many keywords ({len(keywords)}): {keywords}"
-                        )
-
-        for miner_uid, miner_predictions in zip(miner_uids, responses):
             for product_id, prediction in zip(queries, miner_predictions):
                 if product_id not in products_to_score:
                     add_prediction(
