@@ -40,13 +40,13 @@ def fetch_products():
         bt.logging.error(
             f"Error fetching reviewed products: {response_reviewed.status_code}"
         )
-        return FetchProductsReturnType([], [], [])
+        return [], [], []
 
     if response_unreviewed.status_code != 200:
         bt.logging.error(
             f"Error fetching unreviewed products: {response_unreviewed.status_code}"
         )
-        return FetchProductsReturnType([], [], [])
+        return [], [], []
 
     reviewed_response = ReviewedProductsApiResponse.from_dict(response_reviewed.json())
     unreviewed_response = UnreviewedProductsApiResponse.from_dict(
