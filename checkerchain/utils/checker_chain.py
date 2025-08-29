@@ -139,7 +139,7 @@ def fetch_batch_product_data(product_ids):
     Returns:
         list: A list of product data for the specified product IDs.
     """
-    url = "https://mvp-backend-testnet.checkerchain.com/api/v1/products/subnet/batch"
+    url = "https://api.checkerchain.com/api/v1/products/subnet/batch"
     body = {"productIds": product_ids}
     
     try:
