@@ -166,3 +166,5 @@ testing/
 
 # Editors
 .vscode/settings.json
+
+test_batch.py
