@@ -13,6 +13,7 @@ from checkerchain.types.checker_chain import (
     ReviewedProductsApiResponse,
     UnreviewedProductApiResponse,
     UnreviewedProductsApiResponse,
+    Category,
 )
 
 from .misc import dict_to_namespace
@@ -126,3 +127,43 @@ def fetch_product_data(product_id):
             "Error fetching product data:", response.status_code, response.text
         )
         return None
+
+
+def fetch_batch_product_data(product_ids):
+    """
+    Fetch product data for a batch of product IDs.
+    
+    Args:
+        product_ids (list): A list of product IDs to fetch data for.
+
+    Returns:
+        list: A list of product data for the specified product IDs.
+    """
+    url = "https://api.checkerchain.com/api/v1/products/subnet/batch"
+    body = {"productIds": product_ids}
+    
+    try:
+        response = requests.post(url, json=body)
+        if response.status_code == 200:
+            products = []
+            for product in response.json().get("data", []):
+                category = None
+                if product.get("category"):
+                    category = Category.from_dict(product.get("category"))
+                
+                products.append(dict_to_namespace({
+                    "_id": product.get("_id"),
+                    "name": product.get("name"),
+                    "url": product.get("url"),
+                    "description": product.get("description"),
+                    "category": category,
+                }))
+            return products
+        else:
+            bt.logging.error(
+                f"Error fetching batch product data: {response.status_code} {response.text}"
+            )
+            return []
+    except Exception as e:
+        bt.logging.error(f"Exception while fetching batch product data: {e}")
+        return []
