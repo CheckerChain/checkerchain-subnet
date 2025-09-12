@@ -7,7 +7,7 @@ from checkerchain.database.actions import get_blacklisted_miners_hotkeys
 
 
 def check_uid_availability(
-    metagraph: "bt.metagraph.Metagraph", uid: int, vpermit_tao_limit: int
+    metagraph: "bt.metagraph.Metagraph", uid: int, validator_uid: int
 ) -> bool:
     """Check if uid is available. The UID should be available if it is serving and has less than vpermit_tao_limit stake
     Args:
@@ -21,9 +21,8 @@ def check_uid_availability(
     if not metagraph.axons[uid].is_serving:
         return False
     # Filter validator permit > 1024 stake.
-    if metagraph.validator_permit[uid]:
-        if metagraph.S[uid] > vpermit_tao_limit:
-            return False
+    if uid == validator_uid:
+        return False
     # Available otherwise.
     return True
 
@@ -42,9 +41,7 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> np.ndarray:
     avail_uids = []
 
     for uid in range(self.metagraph.n.item()):
-        uid_is_available = check_uid_availability(
-            self.metagraph, uid, self.config.neuron.vpermit_tao_limit
-        )
+        uid_is_available = check_uid_availability(self.metagraph, uid, self.uid)
         uid_is_not_excluded = exclude is None or uid not in exclude
 
         if uid_is_available:
@@ -80,9 +77,7 @@ def get_filtered_uids(self, max_per_key: int = 15) -> np.ndarray:
             continue
         cnt = counts.get(ck, 0)
         if cnt < max_per_key:
-            if check_uid_availability(
-                self.metagraph, i, self.config.neuron.vpermit_tao_limit
-            ):
+            if check_uid_availability(self.metagraph, i, self.uid):
                 available_uids.append(i)
             counts[ck] = cnt + 1
 
