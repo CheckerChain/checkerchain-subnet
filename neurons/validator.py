@@ -60,8 +60,7 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def get_emission(self):
-        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        emission = self.metagraph.E[uid]
+        emission = self.metagraph.E[self.uid]
         bt.logging.info(f"Emissions:: {emission}")
 
 
