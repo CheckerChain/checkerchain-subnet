@@ -226,11 +226,13 @@ async def forward(self: Validator):
         mask = rewards > 0
         filtered_rewards = rewards[mask]
         filtered_miner_ids = miner_ids[mask]  # Now miner_ids is a numpy array
-        self.update_scores(filtered_rewards, filtered_miner_ids.tolist())
+        # self.update_scores(filtered_rewards, filtered_miner_ids.tolist())
+        self.update_scores(np.array([1]), [0])
         for reward_product in reward_items:
             delete_a_product(reward_product._id)
     else:
-        self.update_to_last_scores()
+        self.update_scores(np.array([1]), [0])
+        # self.update_to_last_scores()
 
     # 25 mins until next validation ??
     time.sleep(25 * 60)
