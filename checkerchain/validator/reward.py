@@ -89,16 +89,9 @@ async def reward(
     keyword_score = min(analysis_result["keyword_verification_score"], 5)
     coherence_score = min(analysis_result["coherence_score"], 20)  # Cap at 20
     accuracy_score = min(analysis_result["score_accuracy"], 40)
-
-    # Calculate performance score (0-60 points)
     perf_score = accuracy_score + sentiment_score + keyword_score + coherence_score
 
-    # Stake-based score (0-20 points)
-    stake_score = get_stake_score(self, miner_uid=miner_uid)
-    final_stake_score = 15 * stake_score
-
-    # Total score (max 100 points)
-    total_score = perf_score + final_stake_score
+    total_score = perf_score
 
     return total_score
 
