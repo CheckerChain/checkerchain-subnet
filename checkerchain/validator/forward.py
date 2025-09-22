@@ -35,7 +35,7 @@ from checkerchain.database.actions import (
 )
 from checkerchain.validator.reward import get_rewards
 from neurons.validator import Validator
-from checkerchain.utils.checker_chain import fetch_products
+from checkerchain.utils.checker_chain import fetch_permitted_miners, fetch_products
 from checkerchain.utils.config import IS_OWNER, STATS_SERVER_URL, JWT_SECRET
 import requests
 from checkerchain.utils.uids import get_filtered_uids
@@ -68,7 +68,7 @@ async def forward(self: Validator):
         responses = await self.dendrite(
             axons=[self.metagraph.axons[uid] for uid in miner_uids],
             synapse=CheckerChainSynapse(query=queries),
-            timeout=25,
+            timeout=100,
             deserialize=True,
         )
         bt.logging.info(f"Received responses: {len(responses)}")
@@ -226,17 +226,19 @@ async def forward(self: Validator):
         mask = rewards > 0
         filtered_rewards = rewards[mask]
         filtered_miner_ids = miner_ids[mask]  # Now miner_ids is a numpy array
-        current_sum = filtered_rewards.sum()
-        burn_value = 19 * current_sum
-        filtered_rewards = np.concatenate(([burn_value], filtered_rewards))
-        filtered_miner_ids = np.concatenate(([0], filtered_miner_ids))
-        normalization_factor = 2000 / filtered_rewards.sum()
-        filtered_rewards = filtered_rewards * normalization_factor
-        self.update_scores(filtered_rewards, filtered_miner_ids.tolist())
+        permitted_miners = fetch_permitted_miners()
+        permitted_uids_set = set([p["uid"] for p in permitted_miners])
+        permitted_indexes = [
+            i for i, uid in enumerate(filtered_miner_ids) if uid in permitted_uids_set
+        ]
+        filtered_rewards = [filtered_rewards[i] for i in permitted_indexes]
+        filtered_miner_ids = [filtered_miner_ids[i] for i in permitted_indexes]
+        bt.logging.info(f"Filtered rewards: {filtered_rewards}")
+        bt.logging.info(f"Filtered miner ids: {filtered_miner_ids}")
+        self.update_scores(filtered_rewards, filtered_miner_ids)
         for reward_product in reward_items:
             delete_a_product(reward_product._id)
     else:
-        # self.update_scores(np.array([1]), [0])
         self.update_to_last_scores()
 
     # 25 mins until next validation ??
